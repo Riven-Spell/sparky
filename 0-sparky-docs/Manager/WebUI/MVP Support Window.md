@@ -1,0 +1,8 @@
+- Cluster status
+	- Node availability
+	- Inference-ready models
+	- Log fetching
+- Model management
+	- Loading (allow selecting specific hosts)
+	- Eviction
+- Config reloading

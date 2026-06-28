@@ -1,2 +1,4 @@
 .*/
-sparky-docs/.*/
+0-sparky-docs/.*/
+
+*.exe

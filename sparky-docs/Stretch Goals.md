@@ -1,3 +1,0 @@
-- Addition of new model recipes via webui
-- Ability to request the load of ComfyUI on a node via webui?
-- Anthropic compatible API for integration with Claude Code TUI?

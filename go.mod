@@ -1,4 +1,4 @@
-module sparky
+module github.com/Riven-Spell/sparky
 
 go 1.26.3
 

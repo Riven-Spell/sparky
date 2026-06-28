@@ -11,7 +11,6 @@ servers:
     description: Manager
   - url: http://<agent-host>:8081
     description: Agent
-
 tags:
   - name: openai-compatible
     description: OpenAI-compatible APIs for model inference access
@@ -19,16 +18,11 @@ tags:
     description: Sparky manager APIs for cluster-wide model and agent management
   - name: agent
     description: Sparky agent APIs for per-node health and diagnostics
-
 paths:
-
-  # ---------------------------------------------------------------------------
-  #  OpenAI-compatible APIs
-  # ---------------------------------------------------------------------------
-
   /v1/chat/completions:
     post:
-      tags: [openai-compatible]
+      tags:
+        - openai-compatible
       summary: Create chat completion
       description: |
         Route a chat-completion request to a loaded model.
@@ -47,13 +41,15 @@ paths:
                 messages:
                   type: array
                   items:
-                    $ref: "#/components/schemas/ChatMessage"
+                    $ref: '#/components/schemas/ChatMessage'
                 stream:
                   type: boolean
                   nullable: true
-              required: [model, messages]
+              required:
+                - model
+                - messages
       responses:
-        "200":
+        '200':
           description: Chat completion response
           content:
             application/json:
@@ -64,7 +60,8 @@ paths:
                     type: string
                   object:
                     type: string
-                    enum: [chat.completion]
+                    enum:
+                      - chat.completion
                   choices:
                     type: array
                     items:
@@ -73,17 +70,47 @@ paths:
                         index:
                           type: integer
                         message:
-                          $ref: "#/components/schemas/ChatMessage"
+                          $ref: '#/components/schemas/ChatMessage'
                         finish_reason:
                           type: string
-                          enum: [stop, length]
-
+                          enum:
+                            - stop
+                            - length
+        '400':
+          description: Bad request — model not registered
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
+        '503':
+          description: >-
+            Service unavailable — model too large, cannot evict, or currently
+            loading
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+            Retry-After:
+              schema:
+                type: integer
+                description: Seconds after which to retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
   /v1/models:
     get:
-      tags: [openai-compatible]
+      tags:
+        - openai-compatible
       summary: List models
-      description: |
-        Return all models managed by Sparky, optionally filtering by load status.
+      description: >
+        Return all models managed by Sparky, optionally filtering by load
+        status.
+
         Without a parameter, returns every model (loaded and unloaded).
       parameters:
         - name: status
@@ -91,10 +118,15 @@ paths:
           required: false
           schema:
             type: string
-            enum: [loaded, idle, loading, evicting]
+            enum:
+              - loaded
+              - unloaded
+              - loading
+              - evicting
+              - crashing
           description: Filter models by their current load status.
       responses:
-        "200":
+        '200':
           description: A list of models
           content:
             application/json:
@@ -104,12 +136,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ClusterModel"
+                      $ref: '#/components/schemas/ClusterModel'
                   object:
                     type: string
-                    enum: [list]
+                    enum:
+                      - list
     post:
-      tags: [manager]
+      tags:
+        - manager
       summary: Load a model
       description: |
         Force-load a specific model. If the model is already loaded,
@@ -123,12 +157,37 @@ paths:
             type: string
           description: Model identifier to load.
       responses:
-        "202":
+        '202':
           description: Model load request accepted
-        "404":
+        '400':
+          description: Bad request — model not registered
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
+        '404':
           description: Model not found
+        '503':
+          description: Service unavailable — model too large or cannot evict
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+            Retry-After:
+              schema:
+                type: integer
+                description: Seconds after which to retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
     delete:
-      tags: [manager]
+      tags:
+        - manager
       summary: Unload a model
       description: |
         Forcefully unload a model, optionally bypassing its time-gate.
@@ -140,14 +199,24 @@ paths:
             type: string
           description: Model identifier to unload.
       responses:
-        "200":
+        '200':
           description: Model unload accepted
-        "404":
+        '400':
+          description: Bad request — model not registered
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
+        '404':
           description: Model not found
-
   /v1/completions:
     post:
-      tags: [openai-compatible]
+      tags:
+        - openai-compatible
       summary: Create completion
       description: |
         Route a legacy-text-completion request to a loaded model.
@@ -165,9 +234,11 @@ paths:
                 stream:
                   type: boolean
                   nullable: true
-              required: [model, prompt]
+              required:
+                - model
+                - prompt
       responses:
-        "200":
+        '200':
           description: Completion response
           content:
             application/json:
@@ -178,7 +249,8 @@ paths:
                     type: string
                   object:
                     type: string
-                    enum: [text_completion]
+                    enum:
+                      - text_completion
                   choices:
                     type: array
                     items:
@@ -190,30 +262,53 @@ paths:
                           type: integer
                         finish_reason:
                           type: string
-
-  # ---------------------------------------------------------------------------
-  #  Manager APIs
-  # ---------------------------------------------------------------------------
+        '400':
+          description: Bad request — model not registered
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
+        '503':
+          description: >-
+            Service unavailable — model too large, cannot evict, or currently
+            loading
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+            Retry-After:
+              schema:
+                type: integer
+                description: Seconds after which to retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
   /v1/config/reload:
     post:
-      tags: [manager]
+      tags:
+        - manager
       summary: Reload configuration
       description: |
         Reload the manager configuration file from disk. This updates the
         registered models and other settings without restarting the process.
       responses:
-        "200":
+        '200':
           description: Configuration reloaded successfully
-        "500":
+        '500':
           description: Failed to reload configuration
-
   /v1/agents:
     get:
-      tags: [manager]
+      tags:
+        - manager
       summary: List all agents in the cluster
       description: Return every agent node the manager has registered.
       responses:
-        "200":
+        '200':
           description: List of agents
           content:
             application/json:
@@ -223,14 +318,15 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Agent"
-
+                      $ref: '#/components/schemas/Agent'
   /v1/agents/health:
     get:
-      tags: [manager]
+      tags:
+        - manager
       summary: Get agent node health by ID
-      description: |
-        Diagnostic endpoint for a specific agent node: models loaded, alive status, memory usage.
+      description: >
+        Diagnostic endpoint for a specific agent node: models loaded, alive
+        status, memory usage.
       parameters:
         - name: agent_id
           in: query
@@ -239,60 +335,103 @@ paths:
             type: string
           description: The agent IP address.
       responses:
-        "200":
-          description: Agent health status
+        '200':
+          description: Agent health status. '*'
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AgentHealth"
+                $ref: '#/components/schemas/AgentHealth'
     post:
-      tags: [manager]
+      tags:
+        - manager
       summary: Report agent health
-      description: |
+      description: >
         Push a health report from an agent to the manager.
-        The agent ID is carried in the request body, and *must* match the local IP from which this request was sent.
+
+        The agent ID is carried in the request body, and *must* match the local
+        IP from which this request was sent.
+
         Used for immediate state changes such as a model crashing or being
+
         loaded/unloaded outside the normal manager flow (e.g. via CLI).
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AgentHealth"
+              $ref: '#/components/schemas/AgentHealth'
       responses:
-        "204":
+        '204':
           description: Health report accepted
-        "404":
+        '400':
+          description: Bad request — agent ID does not match request source IP
+          headers:
+            X-Sparky-ErrorCode:
+              schema:
+                $ref: '#/components/schemas/SparkyErrorCode'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparkyError'
+        '404':
           description: Agent not found
-
   /v1/health:
     get:
-      tags: [agent]
+      tags:
+        - agent
       summary: Get self-health
-      description: |
-        Local health report from an agent node: whether the node is alive, what models it has loaded, and memory usage.
+      description: >
+        Local health report from an agent node: whether the node is alive, what
+        models it has loaded, and memory usage.
+      parameters:
+        - name: fresh
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: When true, bypass cached health data and perform a real-time check.
       responses:
-        "200":
+        '200':
           description: Agent self-health status
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AgentHealth"
-
+                $ref: '#/components/schemas/AgentHealth'
 components:
   schemas:
-
-    # OpenAI-compatible shapes
+    SparkyError:
+      type: object
+      properties:
+        ErrorCode:
+          type: string
+          description: Machine-readable error code.
+        ErrorDetail:
+          type: string
+          description: Human-readable explanation of the error.
+      required:
+        - ErrorCode
+        - ErrorDetail
+    SparkyErrorCode:
+      type: string
+      enum:
+        - ModelNotRegistered
+        - ModelTooLarge
+        - CannotEvict
+        - ModelLoading
     ChatMessage:
       type: object
       properties:
         role:
           type: string
-          enum: [system, user, assistant]
+          enum:
+            - system
+            - user
+            - assistant
         content:
           type: string
-      required: [role, content]
-
+      required:
+        - role
+        - content
     ModelObject:
       type: object
       properties:
@@ -300,30 +439,63 @@ components:
           type: string
         object:
           type: string
-          enum: [model]
+          enum:
+            - model
         created:
           type: integer
         owned_by:
           type: string
-      required: [id, object, created, owned_by]
-
-    # Sparky-specific shapes
-
+      required:
+        - id
+        - object
+        - created
+        - owned_by
     ClusterModel:
       type: object
       properties:
         name:
           type: string
           description: Model name / identifier.
-        status:
-          type: string
-          enum: [loaded, idle, loading, evicting]
-        agent_id:
+        sparkrun_id:
           type: string
           nullable: true
-          description: Agent (node) where the model currently runs, if loaded.
-      required: [name, status]
-
+          description: sparkrun model identifier (recipe name), useful for SSH diagnostics
+        status:
+          type: string
+          enum:
+            - loaded
+            - unloaded
+            - loading
+            - evicting
+            - crashing
+        endpoint:
+          type: string
+          nullable: true
+          description: The HTTP endpoint of the model, if it is reachable.
+        since:
+          type: integer
+          format: int64
+          description: >-
+            How long since the model was started, or became available (including time before the HTTP
+            server became available.) formatted as a UNIX timestamp.
+        no_list:
+          type: boolean
+          default: false
+          description: >
+            When true, the model occupies the node but is not exposed for
+            inference (derived from container label `sparky.nolist`).
+            The node's capacity is consumed but the model won't appear in
+            inference routing.
+        no_evict:
+          type: boolean
+          default: false
+          description: >
+            When true, the model will not be auto-evicted. Only manual
+            eviction can remove it (derived from container label
+            `sparky.noevict`).
+      required:
+        - name
+        - status
     RegisteredModel:
       type: object
       properties:
@@ -333,8 +505,15 @@ components:
         recipe_address:
           type: string
           description: Sparkrun recipe address (e.g. "@official/llama-3-70b").
-      required: [name, recipe_address]
-
+        nodes:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Number of nodes (sparks) this model requires.
+      required:
+        - name
+        - recipe_address
+        - nodes
     Agent:
       type: object
       properties:
@@ -344,7 +523,6 @@ components:
         name:
           type: string
           description: Human-readable node name.
-
     AgentHealth:
       type: object
       properties:
@@ -360,7 +538,8 @@ components:
         models:
           type: array
           items:
-            $ref: "#/components/schemas/ClusterModel"
-      required: [id, alive, memory_used_gb]
-
-    
+            $ref: '#/components/schemas/ClusterModel'
+      required:
+        - id
+        - alive
+        - memory_used_gb

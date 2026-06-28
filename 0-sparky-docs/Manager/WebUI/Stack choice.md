@@ -1,0 +1,1 @@
+Write server in Golang, WebUI with Flutter? Embed built webUI into server binary.

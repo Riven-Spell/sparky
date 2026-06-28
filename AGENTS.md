@@ -39,7 +39,9 @@ systemd services under `/etc/systemd/system/`:
 
 ## Key files
 
-- `sparky-docs/openapi.yaml` — canonical API surface (agents should reference this, not the code)
-- `sparky-docs/Plan.md` — architecture rationale
+- `0-sparky-docs/openapi.yaml` — canonical API surface (agents should reference this, not the code)
+- `0-sparky-docs/Plan.md` — architecture rationale
 - `implementation_plan.md` — systemd configs and discovery flow summary
 - `.opencode/opencode.json` — plugins (websearch, dcp)
+- `.ignore` - Ignored files for exploration
+- `0-sparky-docs/Code Style.md`

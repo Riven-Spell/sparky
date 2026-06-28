@@ -1,0 +1,5 @@
+- Addition of new model recipes via webui
+	- This was originally decided against, because it adds complexity. But it may still prove useful. Nothing an SSH connection can't resolve, though!
+- Ability to request the load of ComfyUI on a node via webui?
+- Anthropic compatible API for integration with Claude Code TUI?
+- Support in requests the ability to use fallback models; I.e. a preference list.
