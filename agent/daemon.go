@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 
 	"github.com/Riven-Spell/sparky/common/impls"
 )
@@ -18,6 +20,19 @@ func NewDaemon(cfg Config) *Daemon {
 }
 
 func (d *Daemon) mainLoop(ctx context.Context) error {
-	<-ctx.Done()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/health", handleGetHealth(d))
+
+	srv := newServer(d.config.listenAddress(), mux)
+
+	go func() {
+		<-ctx.Done()
+		srv.shutdown(context.Background())
+	}()
+
+	if err := srv.listenAndServe(); err != nil {
+		return fmt.Errorf("agent server: %w", err)
+	}
+
 	return nil
 }

@@ -34,3 +34,5 @@ If there are no mandatory parameters inside the options bag, make the options ba
 Foo goes from `FooBar(<insane list>)` to `FooBar(mandatoryX, opts ...FooBarOptions)`, or if there's many mandatory parameters, just `FooBar(opts FooBarOptions)`. Many options becomes readable, because the inputs become labeled.
 # Struct field labeling
 Always fully label struct fields. `FooBar{x, y, z}` sure is convenient, but you can't tell me what the fields mean when it gets large enough. Same issue that spawned options bags.
+# Unexported internals
+Types, functions, and variables that are not referenced outside their package should remain unexported. Export only what external consumers need. This reduces the public surface area, makes refactoring easier, and avoids committing to a stable API for implementation details.

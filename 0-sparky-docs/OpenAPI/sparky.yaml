@@ -526,9 +526,6 @@ components:
     AgentHealth:
       type: object
       properties:
-        id:
-          type: string
-          description: Agent IP address.
         alive:
           type: boolean
           description: Whether the agent is still responding.
@@ -540,6 +537,5 @@ components:
           items:
             $ref: '#/components/schemas/ClusterModel'
       required:
-        - id
         - alive
         - memory_used_gb
