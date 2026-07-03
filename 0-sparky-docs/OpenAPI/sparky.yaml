@@ -453,10 +453,10 @@ components:
     ClusterModel:
       type: object
       properties:
-        name:
+        nickname:
           type: string
-          description: Model name / identifier.
-        sparkrun_id:
+          description: Human-friendly model name (e.g. "llama-3-70b"). Inherits recipe name if not set.
+        sparkrun_recipe:
           type: string
           nullable: true
           description: sparkrun model identifier (recipe name), useful for SSH diagnostics

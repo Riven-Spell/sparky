@@ -2,6 +2,10 @@
 
 Go CLI tool (`module sparky`, Go 1.26.3, uses `github.com/spf13/cobra`) for managing LLMs across a DGX Spark cluster. Two binaries: **manager** (web UI + router, port 8080) and **agent** (per-node health reporter, port 8081).
 
+## Tool Preferences
+
+Use local tools first (i.e. WebFetch before resorting to MCP tools.)
+
 ## Architecture
 
 - **Manager** — runs on one host. Discovers cluster nodes by executing `sparkrun cluster show default --json` on startup. Polls each agent via `GET http://<node>:8081/v1/health`. Exposes OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`, `/v1/completions`) and manager APIs (`/v1/config/reload`, `/v1/agents`, `/v1/agents/health`). Auto-loads models to available nodes; evicts after configurable idle time (default 15 min) to prevent thrashing.

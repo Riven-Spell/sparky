@@ -12,7 +12,7 @@ Why should credential management live in the same package as primitive data stru
 
 A separate package breaks it down to a logical module. `cmd` provides command line. `common`, and it's child packages provide common data structures. `agent` provides the daemon that lives on each node. `manager` provides the backend for the manager. `webui` provides for hosting the webui.
 # Enums
-Golang does not have native support for enums. Thus, an external package must be used to mimic them. My package of choice would be my own enum package, `github.com/Riven-Spell/enum`. Enums are best treated as their own package in the project, as they are not likely to reference other packages and are easily a primitive.
+Golang does not have native support for enums. Thus, an external package must be used to mimic them. My package of choice would be my own enum package, `https://pkg.go.dev/github.com/Riven-Spell/enum/v2`. Enums are best treated as their own package in the project, as they are not likely to reference other packages and are easily a primitive.
 # Options bags
 A function will rarely have more than two or three mandatory inputs. `FooBar(x, y, z, true, false, "", false, false, 50)` is insane to read and parse through. Options bags provide a named way to handle both optionality, and if it gets long enough, mandatory values.
 
