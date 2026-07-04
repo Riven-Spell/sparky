@@ -30,6 +30,8 @@ func (d *Daemon) mainLoop(ctx context.Context) error {
 		srv.shutdown(context.Background())
 	}()
 
+	go d.runHealthChecks(ctx)
+
 	if err := srv.listenAndServe(); err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
