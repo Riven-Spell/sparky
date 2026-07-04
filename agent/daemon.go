@@ -27,7 +27,7 @@ func (d *Daemon) mainLoop(ctx context.Context) error {
 
 	go func() {
 		<-ctx.Done()
-		srv.shutdown(context.Background())
+		_ = srv.shutdown(context.Background())
 	}()
 
 	go d.runHealthChecks(ctx)

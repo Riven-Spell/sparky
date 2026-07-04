@@ -28,7 +28,7 @@ func (d *Daemon) reportHealth(ctx context.Context, health models.AgentHealth) er
 	if err != nil {
 		return fmt.Errorf("send health report: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("health report rejected: %s", resp.Status)

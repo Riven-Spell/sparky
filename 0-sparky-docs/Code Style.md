@@ -36,3 +36,5 @@ Foo goes from `FooBar(<insane list>)` to `FooBar(mandatoryX, opts ...FooBarOptio
 Always fully label struct fields. `FooBar{x, y, z}` sure is convenient, but you can't tell me what the fields mean when it gets large enough. Same issue that spawned options bags.
 # Unexported internals
 Types, functions, and variables that are not referenced outside their package should remain unexported. Export only what external consumers need. This reduces the public surface area, makes refactoring easier, and avoids committing to a stable API for implementation details.
+# Explicit error discarding
+When an error return is genuinely not actionable (e.g. closing an HTTP response body, encoding to a response writer after the connection is dead), discard it explicitly with `_ = fn()`. Do not leave the return value dangling — this makes the intent clear and keeps linters happy.
