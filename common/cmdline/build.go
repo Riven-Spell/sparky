@@ -16,7 +16,7 @@ var argProviderType = reflect.TypeFor[ArgProvider]()
 // field cannot be rendered (e.g. a malformed tag, or a custom method
 // named by the tag that is missing or has the wrong signature) -- see
 // [ArgProvider], [ParseTag], and the custom-method form.
-func BuildArgs(prefix []string, bag any) ([]string, error) {
+func BuildArgs(prefix []string, bag any, suffixes ...string) ([]string, error) {
 	args := append([]string(nil), prefix...)
 
 	bagValue := reflect.ValueOf(bag)
@@ -62,6 +62,7 @@ func BuildArgs(prefix []string, bag any) ([]string, error) {
 			args = append(args, tokens...)
 		}
 	}
+	args = append(args, suffixes...)
 	return args, nil
 }
 

@@ -8,6 +8,10 @@
         "192.168.100.2"
     ],
     "description": "",
+    "user": "clusteruser",
     "default": true
 }
 ```
+
+Note: the `user` field is included in current sparkrun releases but
+may be absent in older versions. Older docs sometimes omit it.

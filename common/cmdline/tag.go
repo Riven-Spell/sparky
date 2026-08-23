@@ -24,8 +24,8 @@ type Tag struct {
 // flag name, or more than one custom method) is returned as an error.
 func ParseTag(tag string) (Tag, error) {
 	flagName, options := tag, ""
-	if commaIndex := strings.IndexByte(tag, ','); commaIndex >= 0 {
-		flagName, options = tag[:commaIndex], tag[commaIndex+1:]
+	if before, after, ok := strings.Cut(tag, ","); ok {
+		flagName, options = before, after
 	}
 	if flagName == "" {
 		return Tag{}, fmt.Errorf("cmdline: empty flag name in cmd tag %q", tag)

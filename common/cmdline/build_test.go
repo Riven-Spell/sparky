@@ -5,16 +5,16 @@ import (
 	"testing"
 )
 
-type weirdBag struct {
-	Val   int      `cmd:"val"`
-	Flag  bool     `cmd:"flag"`
-	Tests []string `cmd:"tests"`
-	Ptr   *int     `cmd:"ptr"`
-}
-
 func TestBuildArgsKinds(t *testing.T) {
+	type bag struct {
+		Val   int      `cmd:"val"`
+		Flag  bool     `cmd:"flag"`
+		Tests []string `cmd:"tests"`
+		Ptr   *int     `cmd:"ptr"`
+	}
+
 	ptrVal := 7
-	got, err := BuildArgs([]string{"verb", "sub"}, weirdBag{
+	got, err := BuildArgs([]string{"verb", "sub"}, bag{
 		Val:   5,
 		Flag:  true,
 		Tests: []string{"a", "b"},
@@ -100,7 +100,7 @@ type customBag struct {
 }
 
 func (b *customBag) Val() []string {
-	return []string{"--x", "double:" + itoa(b.X*2)}
+	return []string{"--x", "double:" + strconv.Itoa(b.X*2)}
 }
 
 func TestBuildArgsCustomMethod(t *testing.T) {
@@ -138,7 +138,13 @@ func TestBuildArgsNonStructErrors(t *testing.T) {
 }
 
 func TestBuildArgsNilPtrOK(t *testing.T) {
-	var ptr *weirdBag
+	type bag struct {
+		Val   int      `cmd:"val"`
+		Flag  bool     `cmd:"flag"`
+		Tests []string `cmd:"tests"`
+		Ptr   *int     `cmd:"ptr"`
+	}
+	var ptr *bag
 	got, err := BuildArgs([]string{"verb"}, ptr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -161,7 +167,7 @@ func TestBuildArgsDefault(t *testing.T) {
 	want := []string{"--port", "8080", "--host", "localhost", "--tags", "foo"}
 	assertArgs(t, got, want)
 
-	got, err = BuildArgs(nil, defBag{Port: intPtr(9090), Host: strPtr("example.com")})
+	got, err = BuildArgs(nil, defBag{Port: new(9090), Host: new("example.com")})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -185,9 +191,6 @@ func TestBuildArgsDefaultNonNullable(t *testing.T) {
 		t.Fatal("expected error for default on non-nullable field")
 	}
 }
-
-func intPtr(value int) *int       { return &value }
-func strPtr(value string) *string { return &value }
 
 func TestParseTag(t *testing.T) {
 	testCases := []struct {
@@ -217,10 +220,6 @@ func TestParseTagErrors(t *testing.T) {
 			t.Errorf("ParseTag(%q): expected error", input)
 		}
 	}
-}
-
-func itoa(number int) string {
-	return strconv.Itoa(number)
 }
 
 func assertArgs(t *testing.T, got, want []string) {
