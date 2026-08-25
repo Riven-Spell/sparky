@@ -23,7 +23,12 @@ common/sparkrun/
   sparkrun.go          package doc, DefaultBinary constant
   errors.go            SparkrunError + ErrorKind + AsSparkrunError
   target.go            RecipeNameOrFile, RecipeNameOrJobID, constructors
-  host_diff.go         HostDiff interface, Hosts/HostsFromFile/AddHosts/RemoveHosts
+  host_diff.go         HostsList + HostsDiff sealed interfaces;
+                       Hosts/HostsFromFile/AddHosts/RemoveHosts/CompoundHostDiff
+  key_value_opts.go    KeyValueOpts map[string]string -> sorted --<name> key=value (ArgProvider)
+  transfer_mode.go     TransferMode enum (auto/local/push/delegated)
+  transfer_interface.go TransferInterface enum (auto/cx7/mgmt)
+  topology.go          Topology enum (none/direct/switch/ring)
   cli_client.go        cliClient + NewCliClient + CliOption + runCmd/jsonCmd/streamCmd/plainCmd
   interface.go         Client interface (grows as verbs land)
   cluster_types.go     ClusterSummary + ClusterStatusResult + ClusterGroup +
@@ -34,10 +39,11 @@ common/sparkrun/
   cluster_status.go        ClusterStatus + ClusterStatusOptions
   cluster_list.go          ClusterList
   cluster_default.go       ClusterDefault
-  cluster_create.go        ClusterCreate + ClusterCreateOptions
-  cluster_delete.go        ClusterDelete (always passes --force; no options)
+  cluster_create.go        ClusterCreate + ClusterCreateOptions  cluster_delete.go        ClusterDelete (always passes --force; no options)
   cluster_update.go        ClusterUpdate + ClusterUpdateOptions
-  cluster_set_default.go   ClusterSetDefault, ClusterUnsetDefault
+  cluster_set_default.go   ClusterSetDefault
+  cluster_unset_default.go ClusterUnsetDefault
+  cluster_import.go        ClusterImport + ClusterImportOptions
   cluster_check_job.go     ClusterCheckJob + ClusterCheckJobOptions
   cluster_monitor.go       ClusterMonitor + ClusterMonitorOptions
 
@@ -69,11 +75,12 @@ One top-level command per file. **No** shared options bags — each command decl
 | `cluster status`     | ✅ done | yes |
 | `cluster list`       | ✅ done | yes |
 | `cluster default`    | ✅ done | yes |
-| `cluster create`     | ✅ done | yes (incl. `--default` flag) |
+| `cluster create`     | ✅ done | yes (incl. `--default` flag; HostsList; executor/scheduler/max-gpu-mem-util) |
 | `cluster delete`     | ✅ done | yes |
-| `cluster update`     | ✅ done | yes (all 4 HostDiff modes) |
+| `cluster update`     | ✅ done | yes (all HostsDiff modes incl. CompoundHostDiff; infer-hardware/executor/scheduler/max-gpu-mem-util) |
 | `cluster set-default`| ✅ done | yes |
 | `cluster unset-default` | ✅ done | yes |
+| `cluster import`     | ✅ done | yes (svd provider; dry-run+real) |
 | `cluster check-job`  | ✅ done | yes (both error paths) |
 | `cluster monitor`    | ✅ done | yes (NDJSON stream) |
 | everything else      | not yet | n/a |
@@ -89,17 +96,18 @@ The interface grows as verbs are implemented. **Current state (cluster pass):**
 ```go
 type Client interface {
     // cluster discovery / management
-    ClusterShow(ctx context.Context, name string) (*ClusterSummary, error)
-    ClusterList(ctx context.Context) ([]ClusterSummary, error)
-    ClusterDefault(ctx context.Context) (*ClusterSummary, error)
+    ClusterShow(ctx context.Context, name string, opts ...ClusterShowOptions) (*ClusterSummary, error)
+    ClusterList(ctx context.Context, opts ...ClusterListOptions) ([]ClusterSummary, error)
+    ClusterDefault(ctx context.Context, opts ...ClusterDefaultOptions) (*ClusterSummary, error)
     ClusterStatus(ctx context.Context, opts ClusterStatusOptions) (*ClusterStatusResult, error)
     ClusterCreate(ctx context.Context, name string, opts ...ClusterCreateOptions) error
-    ClusterDelete(ctx context.Context, name string) error
+    ClusterDelete(ctx context.Context, name string, opts ...ClusterDeleteOptions) error
     ClusterUpdate(ctx context.Context, name string, opts ClusterUpdateOptions) error
-    ClusterSetDefault(ctx context.Context, name string) error
-    ClusterUnsetDefault(ctx context.Context) error
+    ClusterSetDefault(ctx context.Context, name string, opts ...ClusterSetDefaultOptions) error
+    ClusterUnsetDefault(ctx context.Context, opts ...ClusterUnsetDefaultOptions) error
+    ClusterImport(ctx context.Context, opts ...ClusterImportOptions) error
     ClusterCheckJob(ctx context.Context, target RecipeNameOrJobID, opts ...ClusterCheckJobOptions) (*ClusterCheckJobResult, error)
-    ClusterMonitor(ctx context.Context, opts ClusterMonitorOptions) (stdout, stderr io.Reader, err error)
+    ClusterMonitor(ctx context.Context, opts ClusterMonitorOptions) (stdout, stderr io.Reader, kill func(), err error)
 }
 ```
 
@@ -136,20 +144,28 @@ func JobID(id string) jobID { return jobID(id) }
 
 `StopAll` doesn't take a target — listed above only for completeness of the per-method rules.
 
-### HostDiff overload (`host_diff.go`)
+### Host list / HostsDiff overload (`host_diff.go`)
 
-Verbs that mutate a cluster's host list (`cluster update`) need to express a choice between several flag modes. The Target overload pattern is reused:
+Verbs that accept a host list or mutate a cluster's host list resolve that choice through two sealed interfaces:
 
 ```go
-type HostDiff interface { hostDiffArgs() []string }
-
-func Hosts([]string) HostDiff          // --hosts a,b,c
-func HostsFromFile(path string) HostDiff // --hosts-file <path>
-func AddHosts([]string) HostDiff      // --add-host a --add-host b ...
-func RemoveHosts([]string) HostDiff   // --remove-host a --remove-host b ...
+type HostsList interface { cmdline.ArgProvider; hostsList() }   // replacement only
+type HostsDiff interface { cmdline.ArgProvider; hostDiff() }    // any mutation
 ```
 
-The wrapper passes whatever `HostsDiff` the caller chose. sparkrun itself rejects combinations of `--hosts`/`--hosts-file` with `--add-host`/`--remove-host`; we deliberately don't re-validate.
+Constructors:
+
+```go
+func Hosts(values []string) HostsList            // --hosts a,b,c
+func HostsFromFile(path string) HostsList        // --hosts-file <path>
+func AddHosts(values []string) HostsDiff         // --add-host a,b,c
+func RemoveHosts(values []string) HostsDiff      // --remove-host a,b,c
+func CompoundHostDiff(added, removed []string) HostsDiff // --add-host ... --remove-host ...
+```
+
+`HostsList` (a replacement) is accepted by verbs that only ever replace the whole host set (`cluster create`, `cluster check-job`). `HostsDiff` is the superset used by `cluster update`; every `HostsList` is also a `HostsDiff`. The unexported `hostsList()`/`hostDiff()` methods seal both interfaces so only types defined in this package qualify. Incremental edits are emitted as a single comma-separated repeat per flag (sparkrun accepts `--add-host a,b,c`). Each concrete type carries a `var _ HostsDiff = ...` compile-time assertion.
+
+The wrapper passes whatever `HostsDiff`/`HostsList` the caller chose. sparkrun itself rejects combinations of `--hosts`/`--hosts-file` with `--add-host`/`--remove-host`; we deliberately don't re-validate.
 
 ### Error type (`errors.go`)
 
@@ -276,28 +292,38 @@ Buffer size is configured via `CliClientOptions.WithStreamBuffer(*int)`. When ni
 the pipe grows without bound (legacy behavior). A 1 MB cap is recommended for
 long-running streams like `ClusterMonitor` to keep memory bounded.
 
-### Hosts is always a list
+### Host fields: replacement vs. plain list
 
-`Hosts` is `[]string`, never `*string`. sparkrun's `--hosts` flag takes a
-comma-separated list (`--hosts a,b,c`); the wrapper joins with `,` and
-passes a single `--hosts` flag. Callers that need a single host still
-pass a one-element slice. There is no `HostsFile` alternative that
-accepts a single string -- `HostsFile` remains `*string` because it
-names a file path.
+Host fields come in two shapes:
+
+- Replacement verbs (`cluster create`, `cluster check-job`) take an `HostsList` (`Hosts(...)` or `HostsFromFile(...)`), never a raw `[]string` — see "Host list / HostsDiff overload" above.
+- Verbs that merely select an existing host set (`cluster status`, `cluster monitor`) take a plain `Hosts []string` (comma-joined into a single `--hosts` flag). Callers that need a single host pass a one-element slice. There is no single-string `HostsFile` field — file-based selection is only expressed via `HostsFromFile(path)` on the replacement verbs.
 
 Applied to:
-- `ClusterCheckJobOptions.Hosts`
-- `ClusterCreateOptions.Hosts`
-- `ClusterMonitorOptions.Hosts`
-- `ClusterStatusOptions.Hosts`
+- `ClusterCheckJobOptions.Hosts` — `HostsList`
+- `ClusterCreateOptions.Hosts` — `HostsList`
+- `ClusterUpdateOptions.Hosts` — `HostsDiff`
+- `ClusterMonitorOptions.Hosts` — `[]string`
+- `ClusterStatusOptions.Hosts` — `[]string`
 - Options bags per command, not merged.
 - Mandatory → non-pointer; optional → pointer; lists/maps → bare (per Code Style).
+- Repeatable `--executor-opt key=value` (and other `-o`-style) options are expressed via `KeyValueOpts` (`key_value_opts.go`), an [ArgProvider] over a `map[string]string` that emits one `--<name> key=value` per entry in sorted-key order (deterministic). The flag name comes from the field's `cmd:"..."` tag. Bare `--executor`/`--scheduler` selectors and `--max-gpu-mem-util` scalar are plain pointer fields.
 - `StopOptions` and `StopAllOptions` are *separate* types (no `--all` in `StopOptions`; no target in `StopAllOptions`).
 - `ClusterDelete` always passes `--force`: a non-interactive caller has no way to answer sparkrun's [y/N] prompt. If a future caller needs the prompt, an options bag is reintroduced then.
 - `LogsOptions.Tail *int` → `--tail N`.
 - `ClusterStatusOptions.DryRun` and `--json` are mutually exclusive (per sparkrun); the wrapper omits `--json` when `DryRun` is set and returns `(nil, nil)` for the result.
 - Result structs live in `cluster_types.go` (cluster scope) or alongside their method (future verbs).
 - Commands with `--json` always pass it; `cliClient` parses into the typed result.
+
+### Importing clusters (`cluster_import.go`)
+
+`sparkrun cluster import` imports an external cluster config (e.g. a
+spark-vllm-docker `.env`) into a sparkrun cluster. It takes a provider
+subcommand (`svd` | `eugr`, plus plugin-provided ones) and a positional
+path. `ClusterImport` currently hardcodes the `svd` provider and its
+`Path` positional; `--name`/`--default`/`--dry-run` are the options
+bag. The deprecated `--from-spark-vllm-docker-env` form is folded into
+the `svd` path.
 
 ### JSON shapes
 
@@ -320,7 +346,7 @@ Deferred:
 3. `cluster list`, `cluster default` — **DONE** ✅
 4. `run`, `stop`, `stop --all`, `logs` — **Priority 3** (manager lifecycle).
 5. `recipe list/search/show/vram/validate` — **Priority 4** (WebUI).
-6. `cluster create/delete/update/set-default/unset-default/check-job/monitor` — **DONE** ✅
+6. `cluster create/delete/update/set-default/unset-default/import/check-job/monitor` — **DONE** ✅
 7. `registry*`, `proxy*`, `export*`, `arena*`, `benchmark*`, `setup*`, `tune*`, `update` — **Priority 6+** as consumers need them.
 
 For each not-yet-implemented verb: add method to `interface.go`, implement on `cliClient` (with `--json` parsing where applicable), capture JSON shape doc.
@@ -336,4 +362,4 @@ Each pass is smoke-tested against the live `default` cluster by a small program 
 - `ClusterCheckJob` — both error paths: nonexistent-recipe (stderr-only) and real-cluster-id (JSON body even on exit 1).
 - `ClusterMonitor` — opens the stream, reads 2 NDJSON lines, decodes each.
 
-No unit tests this pass — `MockClient` will be added when a concrete `agent` or `manager` test needs it.
+No unit tests this pass — `MockClient` will be added when a concrete `agent` or `manager` test needs it. The options-bag argument emission and stream handling are covered by unit tests in `cluster_create_test.go`, `cluster_update_test.go`, `cluster_check_job_test.go`, and `cluster_monitor_test.go`.

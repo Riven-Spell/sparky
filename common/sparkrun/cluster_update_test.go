@@ -8,15 +8,32 @@ import (
 
 func TestClusterUpdateOptionsArgs(t *testing.T) {
 	ring := ETopology.Ring()
+	exec := "docker"
+	sched := "greedy"
+	mem := 0.85
 	got := mustArgs(t, nil, ClusterUpdateOptions{
-		Hosts:       RemoveHosts([]string{"a", "b"}),
-		Description: new("d"),
-		Topology:    &ring,
+		Hosts:               RemoveHosts([]string{"a", "b"}),
+		Description:         new("d"),
+		Topology:            &ring,
+		InferHardware:       true,
+		Executor:            &exec,
+		ExecutorOpts:        KeyValueOpts{"b": "2", "a": "1", "c": ""},
+		ClearExecutorConfig: true,
+		Scheduler:           &sched,
+		MaxGPUMemUtil:       &mem,
 	})
 	want := []string{
 		"--remove-host", "a,b",
 		"--description", "d",
 		"--topology", "ring",
+		"--infer-hardware",
+		"--executor", "docker",
+		"--executor-opt", "a=1",
+		"--executor-opt", "b=2",
+		"--executor-opt", "c=",
+		"--clear-executor-config",
+		"--scheduler", "greedy",
+		"--max-gpu-mem-util", "0.85",
 	}
 	assertEqualArgs(t, got, want)
 }

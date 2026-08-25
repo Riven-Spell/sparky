@@ -31,6 +31,19 @@ type ClusterCreateOptions struct {
 	// SetDefault, when true, also marks this new cluster as the default
 	// (--default).
 	SetDefault bool `cmd:"default"`
+	// Executor is the default executor selector for workloads on this
+	// cluster (--executor), e.g. "docker", "local", or "k8s".
+	Executor *string `cmd:"executor"`
+	// ExecutorOpts are repeatable --executor-opt key=value executor
+	// options (e.g. "privileged=false", "shm_size=16g").
+	ExecutorOpts KeyValueOpts `cmd:"executor-opt"`
+	// Scheduler is the default scheduler selector (--scheduler): e.g.
+	// "greedy" or "occupancy-sparse"/"occupancy-dense". New clusters
+	// default to occupancy-sparse in sparkrun.
+	Scheduler *string `cmd:"scheduler"`
+	// MaxGPUMemUtil caps the fraction of GPU memory usable for
+	// scheduling/fit (--max-gpu-mem-util, 0.0 < x <= 1.0), e.g. 0.85.
+	MaxGPUMemUtil *float64 `cmd:"max-gpu-mem-util"`
 }
 
 // ClusterCreate creates a new named cluster.

@@ -54,6 +54,11 @@ type Client interface {
 	// ClusterUnsetDefault clears the default cluster setting.
 	ClusterUnsetDefault(ctx context.Context, opts ...ClusterUnsetDefaultOptions) error
 
+	// ClusterImport imports an external cluster config (e.g. a
+	// spark-vllm-docker .env) into a sparkrun cluster. Currently only
+	// the svd provider is used; opts.Path is the config file.
+	ClusterImport(ctx context.Context, opts ...ClusterImportOptions) error
+
 	// ClusterCheckJob reports whether a recipe (by name) or a
 	// specific running workload (by cluster ID) is up. The returned
 	// *ClusterCheckJobResult is non-nil on exit 0; on a non-zero
