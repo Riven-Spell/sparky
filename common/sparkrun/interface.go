@@ -78,4 +78,13 @@ type Client interface {
 	// callers read until io.EOF rather than closing the streams.
 	// An [ExitError] surfaces non-zero exits.
 	ClusterMonitor(ctx context.Context, opts ClusterMonitorOptions) (stdout, stderr io.Reader, kill func(), err error)
+
+	// Logs streams the log output for a running recipe (by name) or a
+	// specific running workload (by cluster ID). The returned stdout
+	// [io.Reader] produces the log lines as sparkrun emits them; stderr
+	// carries sparkrun diagnostics. The subprocess is terminated by
+	// cancelling the context or by calling the returned kill function;
+	// callers read until io.EOF. An [ExitError] surfaces non-zero
+	// exits.
+	Logs(ctx context.Context, target RecipeNameOrJobID, opts ...LogsOptions) (stdout, stderr io.Reader, kill func(), err error)
 }
