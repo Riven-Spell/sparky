@@ -11,9 +11,9 @@ import (
 // Methods take a context.Context; required positional arguments are
 // direct parameters; everything else is a varargs options bag.
 //
-// This pass implements only the `cluster` verb. Run/Stop/Logs and
-// recipe/registry/etc. methods are added to this interface as they
-// are implemented -- see common/sparkrun/plan.md for the order.
+// This pass implements the `cluster` and `recipe` verbs. Run/Stop/
+// Logs and registry/proxy/etc. methods are added to this interface as
+// they are implemented -- see common/sparkrun/plan.md for the order.
 type Client interface {
 	// ClusterShow returns the saved definition of a named cluster.
 	ClusterShow(ctx context.Context, name string, opts ...ClusterShowOptions) (*sparkrun_models.ClusterSummary, error)
@@ -87,4 +87,23 @@ type Client interface {
 	// callers read until io.EOF. An [ExitError] surfaces non-zero
 	// exits.
 	Logs(ctx context.Context, target RecipeNameOrJobID, opts ...LogsOptions) (stdout, stderr io.Reader, kill func(), err error)
+
+	// RecipeList returns every available recipe from all registries.
+	// query filters by name/model/description; an empty string lists
+	// all. Returns a (possibly empty) slice.
+	RecipeList(ctx context.Context, query string, opts ...RecipeListOptions) ([]sparkrun_models.RecipeSummary, error)
+
+	// RecipeSearch finds recipes by name, model, or description.
+	// Returns a (possibly empty) slice.
+	RecipeSearch(ctx context.Context, query string, opts ...RecipeSearchOptions) ([]sparkrun_models.RecipeSummary, error)
+
+	// RecipeShow returns the fully-normalized recipe for a recipe name
+	// or a recipe-YAML file.
+	RecipeShow(ctx context.Context, target RecipeNameOrFile, opts ...RecipeShowOptions) (*sparkrun_models.RecipeDetail, error)
+
+	// RecipeVram estimates VRAM usage for a recipe on a DGX Spark.
+	RecipeVram(ctx context.Context, target RecipeNameOrFile, opts ...RecipeVramOptions) (*sparkrun_models.RecipeVramEstimate, error)
+
+	// RecipeValidate checks that a recipe (by name or file) is valid.
+	RecipeValidate(ctx context.Context, target RecipeNameOrFile, opts ...RecipeValidateOptions) (*sparkrun_models.RecipeValidateResult, error)
 }

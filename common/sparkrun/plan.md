@@ -57,7 +57,12 @@ common/sparkrun/
   status.go            Status + StatusOptions + StatusResult   # note: top-level `status`, not cluster
 
   # recipe / registry / proxy / export / arena / benchmark / setup / tune / update — NOT YET
-  recipe.go            RecipeList/Search/Show/Vram/Validate
+  recipe_list.go       RecipeList + RecipeListOptions
+  recipe_search.go     RecipeSearch + RecipeSearchOptions
+  recipe_show.go       RecipeShow + RecipeShowOptions
+  recipe_summary.go    recipeSummaries (shared []RecipeSummary decode)
+  recipe_vram.go       RecipeVram + RecipeVramOptions
+  recipe_validate.go   RecipeValidate + RecipeValidateOptions
   registry.go          RegistryList/Add/Remove/Update/...
   proxy.go             ProxyStart/Stop/Status/Load/Unload/...
   export.go            ExportRecipe/RunningRecipe/Systemd
@@ -68,7 +73,13 @@ common/sparkrun/
   update.go            Update
 ```
 
-One top-level command per file. **No** shared options bags — each command declares its own.
+One top-level command per file.
+
+**Omitted from the spec currently:** `arena`, `benchmark`, and `export` are
+late-priority (Priority 6) future work, not part of the current typed `Client`
+API. The top-level alias commands such as `list` (→ `recipe list`), `search`,
+`show`, `status`, and `logs` are intentionally **not** included in the spec —
+callers use the canonical verb as the entry point. **No** shared options bags — each command declares its own.
 
 ## Implementation status
 
@@ -86,6 +97,11 @@ One top-level command per file. **No** shared options bags — each command decl
 | `cluster import`     | ✅ done | yes (svd provider; dry-run+real) |
 | `cluster check-job`  | ✅ done | yes (both error paths) |
 | `cluster monitor`    | ✅ done | yes (NDJSON stream) |
+| `recipe list`        | ✅ done | yes |
+| `recipe search`      | ✅ done | yes |
+| `recipe show`        | ✅ done | yes (name + file) |
+| `recipe vram`        | ✅ done | yes |
+| `recipe validate`    | ✅ done | yes (name + file; error path) |
 | everything else      | not yet | n/a |
 
 ## Design
@@ -94,7 +110,7 @@ One top-level command per file. **No** shared options bags — each command decl
 
 Every CLI verb is a method. Methods take `context.Context`. Required positional args are direct parameters; options are a varargs options bag. `Stop` and `StopAll` are separate methods because `--all` is a distinct mode of `stop`.
 
-The interface grows as verbs are implemented. **Current state (cluster pass):**
+The interface grows as verbs are implemented. **Current state (cluster + recipe passes):**
 
 ```go
 type Client interface {
@@ -338,6 +354,10 @@ Captured so far:
 - `Cluster list.md` — bare JSON array of `Cluster show` shape. Empty list is `[]`.
 - `Cluster default.md` — `Cluster show` shape, or literal `null` if no default is set.
 - `Cluster check-job.md` — JSON emitted even on exit 1; field semantics documented.
+- `Recipe list and search.md` — bare array; `tp`/`gpu_mem` polymorphic (string or number) → `RecipeScalar` (float64, unset → NaN).
+- `Recipe show.md` — normalized recipe; `metadata`/`defaults` free-form maps → `any`.
+- `Recipe vram.md` — many nullable fields → pointer fields.
+- `Recipe validate.md` — valid + issues; unknown recipe = exit 1, no body.
 
 Deferred:
 - `Cluster monitor.md` — NDJSON; complex; will be captured when a real consumer (WebUI?) needs it.
@@ -348,9 +368,14 @@ Deferred:
 2. `cluster status` — **DONE** ✅
 3. `cluster list`, `cluster default` — **DONE** ✅
 4. `run`, `stop`, `stop --all`, `logs` — **Priority 3** (manager lifecycle).
-5. `recipe list/search/show/vram/validate` — **Priority 4** (WebUI).
+5. `recipe list/search/show/vram/validate` — **DONE** ✅ (WebUI).
 6. `cluster create/delete/update/set-default/unset-default/import/check-job/monitor` — **DONE** ✅
 7. `registry*`, `proxy*`, `export*`, `arena*`, `benchmark*`, `setup*`, `tune*`, `update` — **Priority 6+** as consumers need them.
+
+**Omitted from the spec currently:** `arena`, `benchmark`, and `export` remain
+Priority 6 (late priority is fine). The top-level alias commands (`list`,
+`search`, `show`, `status`, `logs`) are intentionally not included — callers
+should target the canonical verb instead.
 
 For each not-yet-implemented verb: add method to `interface.go`, implement on `cliClient` (with `--json` parsing where applicable), capture JSON shape doc.
 
