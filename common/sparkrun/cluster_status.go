@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/Riven-Spell/sparky/common/cmdline"
+	"github.com/Riven-Spell/sparky/common/sparkrun/sparkrun_models"
 )
 
 // ClusterStatusOptions configures [Client.ClusterStatus].
@@ -31,7 +32,7 @@ type ClusterStatusOptions struct {
 //
 // Returns *ClusterStatusResult on --json. Per-host SSH/connect
 // errors are reported in Result.Errors; they do not fail the call.
-func (c *cliClient) ClusterStatus(ctx context.Context, opts ClusterStatusOptions) (*ClusterStatusResult, error) {
+func (c *cliClient) ClusterStatus(ctx context.Context, opts ClusterStatusOptions) (*sparkrun_models.ClusterStatusResult, error) {
 	args, err := cmdline.BuildArgs([]string{"cluster", "status"}, opts, "--json")
 	if err != nil {
 		return nil, err
@@ -44,7 +45,7 @@ func (c *cliClient) ClusterStatus(ctx context.Context, opts ClusterStatusOptions
 		return nil, nil
 	}
 
-	var out ClusterStatusResult
+	var out sparkrun_models.ClusterStatusResult
 	stdout, stderrBytes, runErr := c.runCmd(ctx, args...)
 	if runErr != nil {
 		return nil, runErr

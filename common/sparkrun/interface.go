@@ -3,6 +3,8 @@ package sparkrun
 import (
 	"context"
 	"io"
+
+	"github.com/Riven-Spell/sparky/common/sparkrun/sparkrun_models"
 )
 
 // Client is the surface that the agent and manager binaries consume.
@@ -14,23 +16,23 @@ import (
 // are implemented -- see common/sparkrun/plan.md for the order.
 type Client interface {
 	// ClusterShow returns the saved definition of a named cluster.
-	ClusterShow(ctx context.Context, name string, opts ...ClusterShowOptions) (*ClusterSummary, error)
+	ClusterShow(ctx context.Context, name string, opts ...ClusterShowOptions) (*sparkrun_models.ClusterSummary, error)
 
 	// ClusterList returns every saved cluster as a slice.
 	// The slice may be empty; the wrapper does not return an error
 	// in that case.
-	ClusterList(ctx context.Context, opts ...ClusterListOptions) ([]ClusterSummary, error)
+	ClusterList(ctx context.Context, opts ...ClusterListOptions) ([]sparkrun_models.ClusterSummary, error)
 
 	// ClusterDefault returns the currently-default cluster, or
 	// (nil, nil) if no default is set.
-	ClusterDefault(ctx context.Context, opts ...ClusterDefaultOptions) (*ClusterSummary, error)
+	ClusterDefault(ctx context.Context, opts ...ClusterDefaultOptions) (*sparkrun_models.ClusterSummary, error)
 
 	// ClusterStatus lists sparkrun containers running on cluster
 	// hosts. opts.Cluster / opts.Hosts select the host set; opts.DryRun
 	// is mutually exclusive with --json and
 	// causes the call to return whatever dry-run text sparkrun
 	// emits (the wrapper does not attempt to parse it).
-	ClusterStatus(ctx context.Context, opts ClusterStatusOptions) (*ClusterStatusResult, error)
+	ClusterStatus(ctx context.Context, opts ClusterStatusOptions) (*sparkrun_models.ClusterStatusResult, error)
 
 	// ClusterCreate creates a new named cluster. Hosts (or a hosts
 	// file) is mandatory -- sparkrun itself rejects calls without
@@ -66,7 +68,7 @@ type Client interface {
 	// that care about the "not running" body can still read it. A
 	// nil result with no error indicates "no such recipe or cluster
 	// ID".
-	ClusterCheckJob(ctx context.Context, target RecipeNameOrJobID, opts ...ClusterCheckJobOptions) (*ClusterCheckJobResult, error)
+	ClusterCheckJob(ctx context.Context, target RecipeNameOrJobID, opts ...ClusterCheckJobOptions) (*sparkrun_models.ClusterCheckJobResult, error)
 
 	// ClusterMonitor streams per-host CPU/RAM/GPU metrics. The
 	// returned stdout [io.Reader] produces NDJSON -- one JSON object

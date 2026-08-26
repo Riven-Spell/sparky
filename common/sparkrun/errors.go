@@ -7,6 +7,7 @@ import (
 	"github.com/Riven-Spell/generic/ptr_tools"
 	"github.com/Riven-Spell/sparky/common/cmdline"
 	"github.com/Riven-Spell/sparky/common/enum"
+	"github.com/Riven-Spell/sparky/common/sparkrun/sparkrun_models"
 )
 
 // SparkrunError is implemented by every error this package returns.
@@ -158,13 +159,13 @@ func newExecError(subcommand, binary string, args []string, stdErr, stdOut strin
 // code. exitCode, StdError, and StdOut describe the failed run.
 type ExitError struct {
 	sparkrunError
-	result *ClusterCheckJobResult
+	result *sparkrun_models.ClusterCheckJobResult
 	raw    []byte
 }
 
 // Result returns the decoded body, if any, that sparkrun emitted
 // alongside a non-zero exit (set by [Client.ClusterCheckJob]).
-func (e *ExitError) Result() *ClusterCheckJobResult {
+func (e *ExitError) Result() *sparkrun_models.ClusterCheckJobResult {
 	if e == nil {
 		return nil
 	}

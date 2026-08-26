@@ -13,7 +13,7 @@
 
 ## Package
 
-Path: `common/sparkrun`. Import: `github.com/Riven-Spell/sparky/common/sparkrun`. Lives alongside `common/models`, `common/enum`, etc.
+Path: `common/sparkrun`. Import: `github.com/Riven-Spell/sparky/common/sparkrun`. Lives alongside `common/models`, `common/enum`, etc. CLI-result models live in the `common/sparkrun/sparkrun_models` subpackage.
 
 ## File layout
 
@@ -31,8 +31,11 @@ common/sparkrun/
   topology.go          Topology enum (none/direct/switch/ring)
   cli_client.go        cliClient + NewCliClient + CliOption + runCmd/jsonCmd/streamCmd/plainCmd
   interface.go         Client interface (grows as verbs land)
-  cluster_types.go     ClusterSummary + ClusterStatusResult + ClusterGroup +
-                       ClusterSoloEntry + ClusterBox + ClusterCheckJobResult
+
+  sparkrun_models/     typed result structs decoded from sparkrun's --json
+                       output -- package of record for everything that
+                       originates from the command-line sparkrun tool
+                       (CLI "models"); import as sparkrun_models
 
   # `cluster` verb — DONE
   cluster_show.go          ClusterShow
@@ -312,7 +315,7 @@ Applied to:
 - `ClusterDelete` always passes `--force`: a non-interactive caller has no way to answer sparkrun's [y/N] prompt. If a future caller needs the prompt, an options bag is reintroduced then.
 - `LogsOptions.Tail *int` → `--tail N`.
 - `ClusterStatusOptions.DryRun` and `--json` are mutually exclusive (per sparkrun); the wrapper omits `--json` when `DryRun` is set and returns `(nil, nil)` for the result.
-- Result structs live in `cluster_types.go` (cluster scope) or alongside their method (future verbs).
+- Result structs live in `sparkrun_models/` (cluster scope) or alongside their method (future verbs) -- everything in `sparkrun_models/` is a model that originates from the command-line sparkrun tool.
 - Commands with `--json` always pass it; `cliClient` parses into the typed result.
 
 ### Importing clusters (`cluster_import.go`)

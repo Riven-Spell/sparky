@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Riven-Spell/generic/list_tools"
+	"github.com/Riven-Spell/sparky/common/sparkrun/sparkrun_models"
 )
 
 // ClusterShowOptions configures [Client.ClusterShow]. Currently empty
@@ -18,9 +19,9 @@ type ClusterShowOptions struct{}
 //   - exit 1: the named cluster does not exist; the wrapper returns
 //     an [ExitError] whose StdError holds the human-readable message
 //     ("Error: Cluster ... not found").
-func (c *cliClient) ClusterShow(ctx context.Context, name string, opts ...ClusterShowOptions) (*ClusterSummary, error) {
+func (c *cliClient) ClusterShow(ctx context.Context, name string, opts ...ClusterShowOptions) (*sparkrun_models.ClusterSummary, error) {
 	_ = list_tools.FirstOrZero(opts)
-	var out ClusterSummary
+	var out sparkrun_models.ClusterSummary
 	if err := c.jsonCmd(ctx, &out, "cluster", "show", name); err != nil {
 		return nil, err
 	}

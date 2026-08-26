@@ -8,6 +8,7 @@ import (
 
 	"github.com/Riven-Spell/generic/list_tools"
 	"github.com/Riven-Spell/sparky/common/cmdline"
+	"github.com/Riven-Spell/sparky/common/sparkrun/sparkrun_models"
 )
 
 // ClusterCheckJobOptions configures [Client.ClusterCheckJob].
@@ -59,7 +60,7 @@ type ClusterCheckJobOptions struct {
 // Callers that don't care about the body can simply treat any
 // non-nil error as "not running"; callers that want the body
 // should type-assert [ExitError] and read Result() / Raw().
-func (c *cliClient) ClusterCheckJob(ctx context.Context, target RecipeNameOrJobID, opts ...ClusterCheckJobOptions) (*ClusterCheckJobResult, error) {
+func (c *cliClient) ClusterCheckJob(ctx context.Context, target RecipeNameOrJobID, opts ...ClusterCheckJobOptions) (*sparkrun_models.ClusterCheckJobResult, error) {
 	var o = list_tools.FirstOrZero(opts)
 	args, err := cmdline.BuildArgs([]string{"cluster", "check-job", target.workloadRef()}, o, "--json")
 	if err != nil {
@@ -73,7 +74,7 @@ func (c *cliClient) ClusterCheckJob(ctx context.Context, target RecipeNameOrJobI
 		if len(trimmed) == 0 {
 			return nil, nil
 		}
-		var out ClusterCheckJobResult
+		var out sparkrun_models.ClusterCheckJobResult
 		if err := json.Unmarshal(trimmed, &out); err != nil {
 			return nil, newParseError("cluster check-job", c.binaryPath, args, trimmed, string(stderrBytes), err)
 		}
@@ -89,7 +90,7 @@ func (c *cliClient) ClusterCheckJob(ctx context.Context, target RecipeNameOrJobI
 		return nil, runErr
 	}
 	if len(trimmed) > 0 {
-		var parsed ClusterCheckJobResult
+		var parsed sparkrun_models.ClusterCheckJobResult
 		if err := json.Unmarshal(trimmed, &parsed); err == nil {
 			xe.result = &parsed
 		} else {

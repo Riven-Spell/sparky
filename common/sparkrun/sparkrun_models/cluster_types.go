@@ -1,4 +1,13 @@
-package sparkrun
+// Package sparkrun_models holds the typed result structs that are
+// decoded from the command-line sparkrun tool's `--json` output.
+//
+// Every type in this package originates from parsing sparkrun (a
+// DGX Spark CLI) output; nothing here is hand-authored or derived
+// from sparky's own domain. They are grouped in this leaf package so
+// both the sparkrun client and the agent/manager binaries can consume
+// them without importing the whole sparkrun client surface (and vice
+// versa -- the client can import this package to build results).
+package sparkrun_models
 
 // ClusterSummary is the saved definition of a cluster, as returned
 // by `sparkrun cluster show`, and reused as the element type of
